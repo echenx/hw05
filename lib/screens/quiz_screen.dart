@@ -113,9 +113,22 @@ class _QuizScreenState extends State<QuizScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'Question ${_currentQuestionIndex + 1}/${_questions.length}',
-              style: TextStyle(fontSize: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Question ${_currentQuestionIndex + 1}/${_questions.length}',
+                  style: TextStyle(fontSize: 20),
+                ),
+                Text(
+                  'Score: $_score/${_questions.length}',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+              ],
             ),
             SizedBox(height: 16),
             Text(
