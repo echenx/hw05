@@ -3,6 +3,18 @@ import '../models/question.dart';
 import '../services/api_service.dart';
 
 class QuizScreen extends StatefulWidget {
+  final int numQuestions;
+  final String category;
+  final String difficulty;
+  final String type;
+
+  QuizScreen({
+    required this.numQuestions,
+    required this.category,
+    required this.difficulty,
+    required this.type,
+  });
+
   @override
   _QuizScreenState createState() => _QuizScreenState();
 }
@@ -24,7 +36,12 @@ class _QuizScreenState extends State<QuizScreen> {
 
   Future<void> _loadQuestions() async {
     try {
-      final questions = await ApiService.fetchQuestions();
+      final questions = await ApiService.fetchQuestions(
+        numQuestions: widget.numQuestions,
+        category: widget.category,
+        difficulty: widget.difficulty,
+        type: widget.type,
+      );
       setState(() {
         _questions = questions;
         _loading = false;
