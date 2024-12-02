@@ -30,6 +30,7 @@ class _QuizScreenState extends State<QuizScreen> {
   String _feedbackText = "";
   late Timer _timer;
   int _timeLeft = 15;
+  List<Map<String, String>> _answerSummary = [];
 
   @override
   void initState() {
@@ -58,7 +59,9 @@ class _QuizScreenState extends State<QuizScreen> {
       _startTimer();
     } catch (e) {
       print(e);
-      // Handle error appropriately
+      setState(() {
+        _loading = false;
+      });
     }
   }
 
@@ -76,26 +79,38 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   void _markTimeout() {
+    final question = _questions[_currentQuestionIndex];
     setState(() {
       _answered = true;
       _feedbackText =
-          "Time's up! The correct answer is ${_questions[_currentQuestionIndex].correctAnswer}.";
+          "Time's up! The correct answer is ${question.correctAnswer}.";
+      _answerSummary.add({
+        "question": question.question,
+        "yourAnswer": "No answer",
+        "correctAnswer": question.correctAnswer,
+      });
     });
   }
 
   void _submitAnswer(String selectedAnswer) {
     _timer.cancel();
+    final question = _questions[_currentQuestionIndex];
     setState(() {
       _answered = true;
       _selectedAnswer = selectedAnswer;
 
-      final correctAnswer = _questions[_currentQuestionIndex].correctAnswer;
-      if (selectedAnswer == correctAnswer) {
+      if (selectedAnswer == question.correctAnswer) {
         _score++;
-        _feedbackText = "Correct! The answer is $correctAnswer.";
+        _feedbackText = "Correct! The answer is ${question.correctAnswer}.";
       } else {
-        _feedbackText = "Incorrect. The correct answer is $correctAnswer.";
+        _feedbackText =
+            "Incorrect. The correct answer is ${question.correctAnswer}.";
       }
+      _answerSummary.add({
+        "question": question.question,
+        "yourAnswer": selectedAnswer,
+        "correctAnswer": question.correctAnswer,
+      });
     });
   }
 
@@ -110,8 +125,29 @@ class _QuizScreenState extends State<QuizScreen> {
       });
       _startTimer();
     } else {
-      _timer.cancel();
+      setState(() {
+        _currentQuestionIndex++;
+        _timer.cancel();
+      });
     }
+  }
+
+  void _restartQuiz() {
+    setState(() {
+      _currentQuestionIndex = 0;
+      _score = 0;
+      _answered = false;
+      _feedbackText = "";
+      _selectedAnswer = "";
+      _answerSummary.clear();
+      _timeLeft = 15;
+      _loading = true;
+    });
+    _loadQuestions();
+  }
+
+  void _goBackToSettings() {
+    Navigator.pop(context);
   }
 
   Widget _buildOptionButton(String option) {
@@ -125,6 +161,54 @@ class _QuizScreenState extends State<QuizScreen> {
     );
   }
 
+  Widget _buildSummaryScreen() {
+    return Scaffold(
+      appBar: AppBar(title: Text('Quiz Summary')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Your Score: $_score/${_questions.length}',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 16),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _answerSummary.length,
+                itemBuilder: (context, index) {
+                  final summary = _answerSummary[index];
+                  return Card(
+                    child: ListTile(
+                      title: Text(summary["question"]!),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Your Answer: ${summary["yourAnswer"]}"),
+                          Text("Correct Answer: ${summary["correctAnswer"]}"),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            ElevatedButton(
+              onPressed: _restartQuiz,
+              child: Text('Retake Quiz'),
+            ),
+            ElevatedButton(
+              onPressed: _goBackToSettings,
+              child: Text('Adjust Settings'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -133,13 +217,14 @@ class _QuizScreenState extends State<QuizScreen> {
       );
     }
 
-    if (_currentQuestionIndex >= _questions.length) {
+    if (_questions.isEmpty) {
       return Scaffold(
-        body: Center(
-          child:
-              Text('Quiz Finished! Your Score: $_score/${_questions.length}'),
-        ),
+        body: Center(child: Text('No questions available.')),
       );
+    }
+
+    if (_currentQuestionIndex >= _questions.length) {
+      return _buildSummaryScreen();
     }
 
     final question = _questions[_currentQuestionIndex];
